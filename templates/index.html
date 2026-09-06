@@ -1,0 +1,218 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>留学生AI助手 V0.3</title>
+<style>
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:#f5f6f8;color:#1d1d1f;max-width:780px;margin:0 auto;padding:22px;
+}
+.card{
+  background:white;border-radius:20px;padding:22px;margin-bottom:18px;
+  box-shadow:0 8px 28px rgba(0,0,0,.06)
+}
+h1{margin:0 0 6px;font-size:29px}
+.sub{color:#6e6e73;margin-bottom:20px}
+label{display:block;margin-top:15px;font-weight:650}
+select,textarea,input[type=file]{
+  width:100%;box-sizing:border-box;border:1px solid #d7d7d7;border-radius:12px;
+  padding:12px;font-size:16px;margin-top:7px;background:white
+}
+textarea{min-height:145px;resize:vertical}
+button{
+  width:100%;border:0;border-radius:13px;background:#111;color:white;
+  font-size:17px;font-weight:700;padding:14px;margin-top:16px;cursor:pointer
+}
+button:disabled{opacity:.5}
+.hidden{display:none}
+.preview{
+  margin-top:12px;border-radius:14px;max-width:100%;display:none;border:1px solid #eee
+}
+.badge{
+  display:inline-block;border-radius:999px;padding:6px 11px;font-size:13px;font-weight:700
+}
+.high{background:#ffe5e5;color:#a00000}
+.medium{background:#fff0c9;color:#7a5000}
+.low{background:#e5f5e9;color:#176934}
+.section{padding-top:15px;margin-top:15px;border-top:1px solid #eee}
+.section h3{font-size:16px;margin:0 0 8px}
+ol{padding-left:22px}
+.reply{
+  background:#f5f6f8;padding:12px;border-radius:10px;white-space:pre-wrap
+}
+.error{
+  background:#fff0f0;color:#a00000;padding:12px;border-radius:10px;margin-top:12px
+}
+.note{
+  background:#f4f4f5;padding:12px;border-radius:10px;color:#555;margin-top:12px;font-size:14px
+}
+.muted{color:#777;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>📸 留学生AI助手</h1>
+  <div class="sub">V0.3 · 看不懂就截图。AI告诉你：这是什么、要不要管、下一步怎么办。</div>
+
+  <label>你的学校</label>
+  <select id="school">
+    <option>UTS</option>
+    <option>University of Sydney</option>
+    <option>UNSW</option>
+    <option>Monash University</option>
+    <option>University of Melbourne</option>
+    <option>其他澳洲大学</option>
+  </select>
+
+  <label>问题类型</label>
+  <select id="category">
+    <option>学校邮件 / 课程</option>
+    <option>Canvas / 学习系统</option>
+    <option>租房 / 账单</option>
+    <option>生活办事</option>
+    <option>其他</option>
+  </select>
+
+  <label>上传截图</label>
+  <input id="image" type="file" accept="image/*" onchange="showPreview()">
+  <img id="preview" class="preview" alt="截图预览">
+
+  <label>补充一句话（可选）</label>
+  <textarea id="text" placeholder="例如：老师，这个是不是必须今天完成？"></textarea>
+
+  <div class="note">
+    真实产品里，这一步就是学生最常用的入口：截图 → AI理解 → 给出行动建议。
+  </div>
+
+  <button id="go" onclick="runAI()">✨ AI帮我看看</button>
+  <div id="err" class="error hidden"></div>
+</div>
+
+<div class="card hidden" id="result">
+  <span id="badge" class="badge"></span>
+  <h2 id="title"></h2>
+
+  <div class="section">
+    <h3>这是什么意思</h3>
+    <div id="meaning"></div>
+  </div>
+
+  <div class="section">
+    <h3>截止时间</h3>
+    <div id="deadline"></div>
+  </div>
+
+  <div class="section">
+    <h3>你现在要做什么</h3>
+    <ol id="actions"></ol>
+  </div>
+
+  <div class="section">
+    <h3>如果不处理</h3>
+    <div id="risk"></div>
+  </div>
+
+  <div class="section">
+    <h3>AI哪里不确定</h3>
+    <div id="uncertainty"></div>
+  </div>
+
+  <div class="section hidden" id="replyBox">
+    <h3>如果要回复，可以这样写</h3>
+    <div class="reply" id="reply"></div>
+  </div>
+
+  <div class="section muted">
+    AI可能会出错。成绩、签证、法律、医疗、付款、合同等重要事项请核对学校或相关官方来源。
+  </div>
+</div>
+
+<script>
+function showPreview(){
+  const input=document.getElementById('image');
+  const preview=document.getElementById('preview');
+  if(input.files && input.files[0]){
+    preview.src=URL.createObjectURL(input.files[0]);
+    preview.style.display='block';
+  }else{
+    preview.style.display='none';
+  }
+}
+
+async function runAI(){
+  const btn=document.getElementById('go');
+  const err=document.getElementById('err');
+  const result=document.getElementById('result');
+  err.classList.add('hidden');
+  result.classList.add('hidden');
+
+  const image=document.getElementById('image').files[0];
+  const text=document.getElementById('text').value.trim();
+
+  if(!image && !text){
+    alert('先上传一张截图，或者粘贴一点文字哈哈');
+    return;
+  }
+
+  const form=new FormData();
+  form.append('school',document.getElementById('school').value);
+  form.append('category',document.getElementById('category').value);
+  form.append('text',text);
+  if(image) form.append('image',image);
+
+  btn.disabled=true;
+  btn.textContent='AI正在看截图…';
+
+  try{
+    const resp=await fetch('/analyze',{method:'POST',body:form});
+    const data=await resp.json();
+
+    if(!resp.ok){
+      throw new Error(data.error + (data.detail ? '：'+data.detail : ''));
+    }
+
+    const badge=document.getElementById('badge');
+    const imp=data.importance || '中';
+    badge.textContent=(imp==='高'?'🔴 高重要度':imp==='低'?'🟢 低重要度':'🟡 中等重要度');
+    badge.className='badge '+(imp==='高'?'high':imp==='低'?'low':'medium');
+
+    document.getElementById('title').textContent=data.title || '';
+    document.getElementById('meaning').textContent=data.meaning || '';
+    document.getElementById('deadline').textContent=data.deadline || '未发现';
+    document.getElementById('risk').textContent=data.risk || '';
+    document.getElementById('uncertainty').textContent=data.uncertainty || '无明显不确定项';
+
+    const ol=document.getElementById('actions');
+    ol.innerHTML='';
+    (data.actions || []).forEach(x=>{
+      const li=document.createElement('li');
+      li.textContent=x;
+      ol.appendChild(li);
+    });
+
+    const replyBox=document.getElementById('replyBox');
+    if(data.reply_needed && data.reply_draft){
+      document.getElementById('reply').textContent=data.reply_draft;
+      replyBox.classList.remove('hidden');
+    }else{
+      replyBox.classList.add('hidden');
+    }
+
+    result.classList.remove('hidden');
+    result.scrollIntoView({behavior:'smooth'});
+
+  }catch(e){
+    err.textContent=e.message;
+    err.classList.remove('hidden');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='✨ AI帮我看看';
+  }
+}
+</script>
+</body>
+</html>
