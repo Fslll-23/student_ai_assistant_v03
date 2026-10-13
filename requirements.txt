@@ -1,3 +1,6 @@
 Flask==3.0.3
 python-dotenv==1.0.1
 requests==2.32.3
+pypdf==6.20.0
+defusedxml==0.7.1
+gunicorn==26.2.0
