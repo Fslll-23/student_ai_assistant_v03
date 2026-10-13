@@ -1,0 +1,19 @@
+<section id="chat-view" hidden aria-label="BaoBao 聊天 / Chat">
+  <aside id="chat-sidebar" aria-label="聊天历史 / Chat history">
+    <div class="chat-side-head"><strong data-zh="聊天记录" data-en="Your chats"></strong><button id="chat-close-history" type="button" data-zh="收起" data-en="Close"></button></div>
+    <button id="chat-new" type="button" class="chat-primary" data-zh="＋ 新建聊天" data-en="＋ New chat"></button>
+    <div id="chat-history"></div>
+    <details class="chat-local-note"><summary data-zh="仅保存在当前设备" data-en="Saved on this device only"></summary><p data-zh="最多保存 20 个聊天，每个最近 40 条消息。使用当前浏览器本地存储，没有云同步或登录。共用设备请清除记录后交接，或使用独立浏览器配置。" data-en="Up to 20 chats, 40 recent messages each, in this browser only. No cloud sync or login. On shared devices, clear records before handing over or use separate browser profiles."></p><p data-zh="原始附件不写入浏览器存储；文件文字与截图在服务内存中最多有效 8 小时，重启、到期或容量淘汰后需重新上传。" data-en="Raw attachments are not stored in the browser. Extracted text and screenshots stay in server memory for up to 8 hours; re-upload after restart, expiry or eviction."></p></details>
+    <button id="chat-clear" type="button" data-zh="清除本机全部聊天" data-en="Clear all local chats"></button>
+  </aside>
+  <div class="chat-main">
+    <header class="chat-header"><button id="chat-history-toggle" type="button" aria-expanded="false" aria-controls="chat-sidebar" data-zh="历史" data-en="History"></button><strong id="chat-title">BaoBao</strong><select id="chat-language" aria-label="聊天语言 / Chat language"><option value="zh">中文</option><option value="en">English</option><option value="both">中英双语</option></select><button id="chat-home" type="button" data-zh="返回首页" data-en="Home"></button></header>
+    <p id="chat-storage-status" class="chat-status" role="status" hidden></p>
+    <div id="chat-messages" role="log" aria-label="聊天消息 / Messages" tabindex="0" aria-live="polite"></div>
+    <div id="chat-composer-host">
+      <div id="chat-quick" hidden><button type="button" data-chat-prompt="draft" data-zh="帮我完成初稿" data-en="Help draft it"></button><button type="button" data-chat-prompt="steps" data-zh="一步步带我做" data-en="Guide me step by step"></button><button type="button" data-chat-prompt="review" data-zh="帮我检查作业" data-en="Review my work"></button></div>
+      <div id="chat-context-status" class="chat-status" hidden></div>
+    </div>
+  </div>
+</section>
+<dialog id="chat-confirm" aria-labelledby="chat-confirm-title"><h2 id="chat-confirm-title" data-zh="确认操作" data-en="Confirm action"></h2><p id="chat-confirm-copy"></p><div id="chat-confirm-actions"><button id="chat-confirm-cancel" type="button" data-zh="取消" data-en="Cancel"></button><button id="chat-confirm-accept" type="button" data-zh="确认" data-en="Confirm"></button></div></dialog>

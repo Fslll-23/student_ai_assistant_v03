@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {newChat,historyFor,safeResult,MAX_MESSAGES}=require('../static/chat-store.js');
+const a=newChat(),b=newChat();assert.notEqual(a.id,b.id);
+a.document={id:'secret-context'};a.draft='current draft';assert.equal(b.document,null);assert.equal(b.draft,'');
+a.messages=[{role:'user',status:'error',text:'failed'},{role:'user',status:'done',text:'good'},{role:'assistant',data:{answer:'answer',draft:'complete draft',_document:{id:'token'}}}];
+let history=historyFor(a);assert.equal(history.length,2);assert.equal(history[0].content,'good');assert.ok(!history[1].content.includes('complete draft'));
+const result=safeResult({answer:'<script>not executed</script>',draft:'full',_document:{id:'secret',text:'raw file'},actions:['yes',null],assignment:true});assert.ok(!('_document' in result));assert.equal(result.answer,'<script>not executed</script>');assert.deepEqual(result.actions,['yes']);
+a.messages=[];for(let i=0;i<20;i++)a.messages.push({role:'user',status:'done',text:'x'.repeat(20000)},{role:'assistant',data:{answer:'y'.repeat(20000),draft:'DRAFT'}});
+history=historyFor(a);assert.equal(history.length%2,0);assert.ok(history.reduce((n,m)=>n+m.content.length,0)<=100000);assert.equal(MAX_MESSAGES,40);
+console.log('Chat store: isolated records, complete pairs, bounded history, draft separation and metadata filtering passed.');

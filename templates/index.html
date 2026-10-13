@@ -1,218 +1,91 @@
-
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>留学生AI助手 V0.3</title>
-<style>
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  background:#f5f6f8;color:#1d1d1f;max-width:780px;margin:0 auto;padding:22px;
-}
-.card{
-  background:white;border-radius:20px;padding:22px;margin-bottom:18px;
-  box-shadow:0 8px 28px rgba(0,0,0,.06)
-}
-h1{margin:0 0 6px;font-size:29px}
-.sub{color:#6e6e73;margin-bottom:20px}
-label{display:block;margin-top:15px;font-weight:650}
-select,textarea,input[type=file]{
-  width:100%;box-sizing:border-box;border:1px solid #d7d7d7;border-radius:12px;
-  padding:12px;font-size:16px;margin-top:7px;background:white
-}
-textarea{min-height:145px;resize:vertical}
-button{
-  width:100%;border:0;border-radius:13px;background:#111;color:white;
-  font-size:17px;font-weight:700;padding:14px;margin-top:16px;cursor:pointer
-}
-button:disabled{opacity:.5}
-.hidden{display:none}
-.preview{
-  margin-top:12px;border-radius:14px;max-width:100%;display:none;border:1px solid #eee
-}
-.badge{
-  display:inline-block;border-radius:999px;padding:6px 11px;font-size:13px;font-weight:700
-}
-.high{background:#ffe5e5;color:#a00000}
-.medium{background:#fff0c9;color:#7a5000}
-.low{background:#e5f5e9;color:#176934}
-.section{padding-top:15px;margin-top:15px;border-top:1px solid #eee}
-.section h3{font-size:16px;margin:0 0 8px}
-ol{padding-left:22px}
-.reply{
-  background:#f5f6f8;padding:12px;border-radius:10px;white-space:pre-wrap
-}
-.error{
-  background:#fff0f0;color:#a00000;padding:12px;border-radius:10px;margin-top:12px
-}
-.note{
-  background:#f4f4f5;padding:12px;border-radius:10px;color:#555;margin-top:12px;font-size:14px
-}
-.muted{color:#777;font-size:13px}
-</style>
-</head>
-<body>
-
-<div class="card">
-  <h1>📸 留学生AI助手</h1>
-  <div class="sub">V0.3 · 看不懂就截图。AI告诉你：这是什么、要不要管、下一步怎么办。</div>
-
-  <label>你的学校</label>
-  <select id="school">
-    <option>UTS</option>
-    <option>University of Sydney</option>
-    <option>UNSW</option>
-    <option>Monash University</option>
-    <option>University of Melbourne</option>
-    <option>其他澳洲大学</option>
-  </select>
-
-  <label>问题类型</label>
-  <select id="category">
-    <option>学校邮件 / 课程</option>
-    <option>Canvas / 学习系统</option>
-    <option>租房 / 账单</option>
-    <option>生活办事</option>
-    <option>其他</option>
-  </select>
-
-  <label>上传截图</label>
-  <input id="image" type="file" accept="image/*" onchange="showPreview()">
-  <img id="preview" class="preview" alt="截图预览">
-
-  <label>补充一句话（可选）</label>
-  <textarea id="text" placeholder="例如：老师，这个是不是必须今天完成？"></textarea>
-
-  <div class="note">
-    真实产品里，这一步就是学生最常用的入口：截图 → AI理解 → 给出行动建议。
-  </div>
-
-  <button id="go" onclick="runAI()">✨ AI帮我看看</button>
-  <div id="err" class="error hidden"></div>
-</div>
-
-<div class="card hidden" id="result">
-  <span id="badge" class="badge"></span>
-  <h2 id="title"></h2>
-
-  <div class="section">
-    <h3>这是什么意思</h3>
-    <div id="meaning"></div>
-  </div>
-
-  <div class="section">
-    <h3>截止时间</h3>
-    <div id="deadline"></div>
-  </div>
-
-  <div class="section">
-    <h3>你现在要做什么</h3>
-    <ol id="actions"></ol>
-  </div>
-
-  <div class="section">
-    <h3>如果不处理</h3>
-    <div id="risk"></div>
-  </div>
-
-  <div class="section">
-    <h3>AI哪里不确定</h3>
-    <div id="uncertainty"></div>
-  </div>
-
-  <div class="section hidden" id="replyBox">
-    <h3>如果要回复，可以这样写</h3>
-    <div class="reply" id="reply"></div>
-  </div>
-
-  <div class="section muted">
-    AI可能会出错。成绩、签证、法律、医疗、付款、合同等重要事项请核对学校或相关官方来源。
-  </div>
-</div>
-
-<script>
-function showPreview(){
-  const input=document.getElementById('image');
-  const preview=document.getElementById('preview');
-  if(input.files && input.files[0]){
-    preview.src=URL.createObjectURL(input.files[0]);
-    preview.style.display='block';
-  }else{
-    preview.style.display='none';
-  }
-}
-
-async function runAI(){
-  const btn=document.getElementById('go');
-  const err=document.getElementById('err');
-  const result=document.getElementById('result');
-  err.classList.add('hidden');
-  result.classList.add('hidden');
-
-  const image=document.getElementById('image').files[0];
-  const text=document.getElementById('text').value.trim();
-
-  if(!image && !text){
-    alert('先上传一张截图，或者粘贴一点文字哈哈');
-    return;
-  }
-
-  const form=new FormData();
-  form.append('school',document.getElementById('school').value);
-  form.append('category',document.getElementById('category').value);
-  form.append('text',text);
-  if(image) form.append('image',image);
-
-  btn.disabled=true;
-  btn.textContent='AI正在看截图…';
-
-  try{
-    const resp=await fetch('/analyze',{method:'POST',body:form});
-    const data=await resp.json();
-
-    if(!resp.ok){
-      throw new Error(data.error + (data.detail ? '：'+data.detail : ''));
-    }
-
-    const badge=document.getElementById('badge');
-    const imp=data.importance || '中';
-    badge.textContent=(imp==='高'?'🔴 高重要度':imp==='低'?'🟢 低重要度':'🟡 中等重要度');
-    badge.className='badge '+(imp==='高'?'high':imp==='低'?'low':'medium');
-
-    document.getElementById('title').textContent=data.title || '';
-    document.getElementById('meaning').textContent=data.meaning || '';
-    document.getElementById('deadline').textContent=data.deadline || '未发现';
-    document.getElementById('risk').textContent=data.risk || '';
-    document.getElementById('uncertainty').textContent=data.uncertainty || '无明显不确定项';
-
-    const ol=document.getElementById('actions');
-    ol.innerHTML='';
-    (data.actions || []).forEach(x=>{
-      const li=document.createElement('li');
-      li.textContent=x;
-      ol.appendChild(li);
-    });
-
-    const replyBox=document.getElementById('replyBox');
-    if(data.reply_needed && data.reply_draft){
-      document.getElementById('reply').textContent=data.reply_draft;
-      replyBox.classList.remove('hidden');
-    }else{
-      replyBox.classList.add('hidden');
-    }
-
-    result.classList.remove('hidden');
-    result.scrollIntoView({behavior:'smooth'});
-
-  }catch(e){
-    err.textContent=e.message;
-    err.classList.remove('hidden');
-  }finally{
-    btn.disabled=false;
-    btn.textContent='✨ AI帮我看看';
-  }
-}
-</script>
-</body>
-</html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#fffaf2"><title>BaoBao V0.4 · Your Study & Life Companion</title>
+<link rel="icon" href="{{ url_for('static', filename='images/brand-flower.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='hero.css') }}">
+<script src="{{ url_for('static', filename='city-config.js') }}" defer></script>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+<script src="{{ url_for('static', filename='documents.js') }}" defer></script>
+<script src="{{ url_for('static', filename='nickname.js') }}" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
+<script src="{{ url_for('static', filename='chat-store.js') }}" defer></script>
+<script src="{{ url_for('static', filename='chat.js') }}" defer></script>
+</head><body>
+<div class="shell" id="home">
+<header class="topbar">
+<a class="brand" href="#home"><img src="{{ url_for('static', filename='images/brand-flower.svg') }}" alt="" width="52" height="52"><span><strong>BaoBao</strong><small data-zh="你的留学小伙伴" data-en="Your study-abroad buddy"></small><em>Your Study &amp; Life Companion</em></span></a>
+<div class="header-actions"><div class="language-control"><svg aria-hidden="true"><use href="#icon-globe"></use></svg><label class="sr-only" for="language" data-zh="语言" data-en="Language"></label><select id="language"><option value="zh">中文</option><option value="en">English</option><option value="both">中英双语</option></select></div><button class="settings-button" type="button" id="settings-entry" aria-label="设置 / Settings">⚙</button></div>
+</header>
+<main id="home-content">
+<section class="hero" id="hero" aria-labelledby="greeting">
+<div class="city-visual" id="city-visual"><img id="city-image" src="{{ url_for('static', filename='images/sydney-hero-original.png') }}" alt="蓝天与阳光下的悉尼歌剧院" width="1536" height="1024" fetchpriority="high"><div class="city-fallback hidden" id="city-fallback"><span aria-hidden="true">☀</span><p data-zh="在你的城市，也有 BaoBao 陪你" data-en="A little company in your city"></p></div><span id="landmark-label" class="sr-only">Sydney Opera House</span></div>
+<div class="hero-copy"><div class="hero-sparkles" aria-hidden="true">✦ <span>☀</span></div><h1 id="greeting"><span class="greeting-line"><span>Hi,</span> <span id="greeting-nickname"></span> <span>👋</span></span><span class="greeting-question"><span data-zh="今天过得" data-en="How’s your day"></span><em data-zh="怎么样？" data-en=" going?"></em></span></h1><p data-zh="无论是学习、生活，还是任何让你有点搞不懂的事情，我都可以帮你一起看看～" data-en="Whether it’s study, life, or something you can’t quite figure out, we can take a look together."></p></div>
+<div class="hero-sky"><button class="location-chip" type="button" id="location-entry"><svg aria-hidden="true"><use href="#icon-pin"></use></svg><span><strong id="city-label">Sydney, Australia</strong><small data-zh="一个更好的自己，从这里开始！" data-en="A brighter you starts here!"></small></span><b aria-hidden="true">›</b></button><span class="hero-handwriting" aria-hidden="true">Good things<br>take time ♡</span></div>
+<div class="hero-companion"><img id="mascot" src="{{ url_for('static', filename='images/baobao-blue-cutout.png') }}" alt="穿蓝色服装、挥手的 BaoBao 小熊" width="1145" height="1374"><span class="companion-caption" data-zh="留学路上，我一直在！" data-en="Right here with you!"></span></div>
+</section>
+<section class="composer card" id="composer" aria-labelledby="composer-title">
+<h2 id="composer-title" class="sr-only" data-zh="有什么想问 BaoBao 的？" data-en="What’s on your mind?"></h2>
+<form id="question-form">
+<div class="input-row"><label for="text" class="sr-only" data-zh="你的问题或邮件内容" data-en="Your question or email"></label><textarea id="text" rows="1" data-placeholder-zh="输入你的问题，或者直接上传截图 …" data-placeholder-en="Ask a question, or add a screenshot …"></textarea><button id="go" class="send-button" type="submit"><svg aria-hidden="true"><use href="#icon-send"></use></svg><span class="sr-only" data-zh="发送问题" data-en="Send question"></span></button></div>
+<div class="composer-tools"><label class="upload-button" for="image"><svg aria-hidden="true"><use href="#icon-image"></use></svg><span data-zh="上传截图" data-en="Screenshot"></span><input id="image" type="file" accept="image/*"></label><button type="button" class="attachment" data-soon="voice"><svg aria-hidden="true"><use href="#icon-mic"></use></svg><span data-zh="语音输入" data-en="Voice input"></span><small data-zh="即将开放" data-en="Soon"></small></button><button type="button" class="attachment" id="upload-document"><svg aria-hidden="true"><use href="#icon-file"></use></svg><span data-zh="上传文件" data-en="Upload file"></span><small>PDF / DOCX</small></button><input id="document" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><details class="question-options"><summary data-zh="选项" data-en="Options"></summary><div class="category-control"><label for="category" data-zh="问题类型" data-en="Topic"></label><select id="category"><option value="学校邮件 / 课程" data-zh="学校邮件 / 课程" data-en="School email / classes"></option><option value="Canvas / 学习系统" data-zh="Canvas / 学习系统" data-en="Canvas / learning systems"></option><option value="租房 / 账单" data-zh="租房 / 账单" data-en="Housing / bills"></option><option value="生活办事" data-zh="生活办事" data-en="Everyday life"></option><option value="其他" data-zh="其他" data-en="Other"></option></select></div></details></div>
+<p class="input-privacy" data-zh="文字、截图与文件提取的文字会发送给 AI 服务，请先遮住隐私信息。" data-en="Text, screenshots and extracted document text go to the AI service. Hide private details first."></p>
+<div id="document-box" class="hidden" role="status" style="overflow-wrap:anywhere"><p id="document-name" class="muted"></p><p id="document-warning" class="muted"></p><button type="button" id="remove-document" class="quiet-button" data-zh="移除文件" data-en="Remove file"></button></div>
+<div id="preview-box" class="preview-box hidden"><img id="preview" alt="截图预览"><button type="button" id="remove-image" class="quiet-button" data-zh="移除截图" data-en="Remove screenshot"></button></div>
+<p id="busy" class="muted hidden" role="status" data-zh="正在认真看你的问题，稍等一下…" data-en="Taking a careful look. One moment…"></p><div id="err" class="error hidden" role="alert"></div>
+</form></section>
+    <section class="result hidden" id="result" aria-labelledby="title" tabindex="-1">
+      <div class="result-top"><span class="eyebrow" data-zh="BAOBAO 帮你理一理" data-en="LET’S MAKE IT CLEAR"></span><span id="badge" class="badge"></span></div><h2 id="title"></h2>
+      <div class="result-grid">
+        <article class="result-card wide"><h3 data-zh="这是什么意思" data-en="What it means"></h3><div id="meaning"></div></article>
+        <article class="result-card deadline-card"><h3 data-zh="◷ 截止时间" data-en="◷ Deadline"></h3><div id="deadline"></div></article>
+        <article class="result-card"><h3 data-zh="如果不处理" data-en="What happens if you leave it"></h3><div id="risk"></div></article>
+        <article class="result-card wide action-card"><h3 data-zh="接下来，一步一步来" data-en="Your next steps"></h3><ol id="actions"></ol></article>
+        <article class="result-card wide"><h3 data-zh="还需要确认的地方" data-en="What still needs checking"></h3><div id="uncertainty"></div></article>
+        <article class="result-card wide hidden" id="replyBox"><h3 data-zh="可以这样回复" data-en="A reply you can use"></h3><div class="reply" id="reply"></div></article>
+      </div>
+      <p class="privacy" data-zh="这是 AI 的建议，重要程度不代表保证。成绩、签证、法律、医疗、付款和合同事项，请再核对官方来源。" data-en="These are AI suggestions, not guarantees. Check official sources for grades, visas, legal, medical, payment, and contract matters."></p>
+    </section>
+<section class="features" aria-label="主要功能 / Main features"><div class="feature-grid"><button type="button" class="feature-card blue" data-mode="study"><span class="feature-icon-wrap"><svg aria-hidden="true"><use href="#feature-cap"></use></svg></span><strong data-zh="学习" data-en="Study"></strong><span class="feature-description" data-zh="课程 / 作业 / 考试
+选课 / 论文 / 学术问题" data-en="Classes / assignments / exams
+Courses / essays / academic help"></span><span class="feature-arrow" aria-hidden="true">›</span></button><button type="button" class="feature-card peach" data-mode="life"><span class="feature-icon-wrap"><svg aria-hidden="true"><use href="#feature-home"></use></svg></span><strong data-zh="生活" data-en="Life"></strong><span class="feature-description" data-zh="租房 / 交通 / 购物
+银行 / 澳洲生活" data-en="Housing / transport / shopping
+Banking / life in Australia"></span><span class="feature-arrow" aria-hidden="true">›</span></button><button type="button" class="feature-card mint" data-mode="chat"><span class="feature-icon-wrap"><svg aria-hidden="true"><use href="#feature-chat"></use></svg></span><strong data-zh="聊天" data-en="Chat"></strong><span class="feature-description" data-zh="随便问我
+学习之外的任何问题" data-en="Ask me anything
+There’s more to life than study"></span><span class="feature-arrow" aria-hidden="true">›</span></button><button type="button" class="feature-card lavender" data-soon="tasks"><span class="feature-icon-wrap"><svg aria-hidden="true"><use href="#feature-calendar"></use></svg></span><strong data-zh="我的事情" data-en="My things"></strong><span class="feature-description" data-zh="重要日期 / 待办事项
+我的课程 / 个性化提醒" data-en="Important dates / tasks
+My courses / reminders"></span><span class="feature-arrow" aria-hidden="true">›</span><small class="soon" data-zh="即将开放" data-en="Coming soon"></small></button></div></section><section class="tools-section" id="toolbox" aria-labelledby="tools-title"><div class="section-heading"><h2 id="tools-title"><span aria-hidden="true">✦</span> <span data-zh="常用工具" data-en="Everyday tools"></span></h2><span class="muted" data-zh="让日常，简单一点" data-en="A little less to figure out"></span></div><div class="tools-grid"><button type="button" class="tool tool-courses" data-mode="courses"><svg aria-hidden="true"><use href="#icon-book"></use></svg><span data-zh="选课建议" data-en="Course advice"></span></button><button type="button" class="tool tool-nearby" data-mode="nearby"><svg aria-hidden="true"><use href="#icon-pin"></use></svg><span data-zh="周边生活" data-en="Life nearby"></span></button><button type="button" class="tool tool-reply" data-mode="reply" id="reply-entry"><svg aria-hidden="true"><use href="#icon-mail"></use></svg><span data-zh="帮我回复邮件" data-en="Email reply"></span></button><button type="button" class="tool tool-question" data-mode="question"><svg aria-hidden="true"><use href="#icon-file"></use></svg><span data-zh="解释这道题" data-en="Explain this"></span></button><button type="button" class="tool tool-visa" data-mode="visa"><svg aria-hidden="true"><use href="#icon-plane"></use></svg><span data-zh="澳洲入境/签证" data-en="Arrival / visa"></span></button><button type="button" class="tool tool-translate" data-mode="translate"><svg aria-hidden="true"><use href="#icon-translate"></use></svg><span data-zh="中英翻译" data-en="Translate"></span></button></div><p class="tool-note" data-zh="周边生活暂未接入实时定位与商家信息；重要事项请核对官方来源。" data-en="Nearby has no live location or listings yet. Verify important matters with official sources."></p></section><aside class="graduation-banner" aria-label="毕业寄语 / Graduation encouragement">
+<img src="{{ url_for('static', filename='images/graduation-sunshine-banner.png') }}" alt="毕业帽、阳光城市、飞机与开着红色跑车的 BaoBao" width="2500" height="500" loading="lazy">
+<div class="graduation-copy"><p>成功的人生，<br>先从顺利毕业开始。</p><small>A successful journey starts with graduation.</small></div>
+</aside><details id="school-settings" class="school-settings"><summary data-zh="校园与城市设置" data-en="School & city settings"></summary>    <section class="school-panel" id="school-panel" aria-labelledby="school-title">
+      <div class="section-heading"><h2 id="school-title" data-zh="从你的校园开始" data-en="Start with your campus"></h2><span class="muted" data-zh="没有你的学校？选 Other 就好" data-en="School not listed? Choose Other"></span></div>
+      <div class="school-grid">
+        <div><label for="country" data-zh="国家" data-en="Country"></label><select id="country"><option>Australia</option></select></div>
+        <div><label for="city" data-zh="城市" data-en="City"></label><select id="city"><option value="Sydney">Sydney</option><option value="Melbourne">Melbourne</option><option value="Brisbane">Brisbane</option><option value="Other" data-zh="其他城市 / Other" data-en="Other city"></option></select></div>
+        <div class="university"><label for="school" data-zh="学校" data-en="University"></label><select id="school"></select></div>
+      </div>
+    </section></details></main>
+<section id="profile-page" class="profile-page hidden" aria-labelledby="profile-title">
+<h1 id="profile-title" data-zh="我的" data-en="My space"></h1>
+<div class="nickname-settings"><img src="/static/images/baobao-blue-cutout.png" alt="BaoBao" width="1145" height="1374"><form id="nickname-edit-form" novalidate>
+<label for="nickname-edit" data-zh="昵称" data-en="Nickname"></label>
+<div class="nickname-edit-row"><input id="nickname-edit" autocomplete="nickname" aria-describedby="nickname-edit-message"><button class="nickname-primary" data-zh="保存" data-en="Save"></button></div>
+<p data-zh="这是你在 BaoBao 中的昵称，可以随时修改～" data-en="Your BaoBao nickname. You can change it anytime."></p><p id="nickname-edit-message" role="status"></p>
+</form></div></section><footer><span>BaoBao V0.4</span><span data-zh="留学生活，一起慢慢来。" data-en="A little easier, together."></span></footer></div>
+<nav class="bottom-nav" aria-label="主导航 / Main navigation"><a href="#home" data-nav="home" aria-current="page"><svg aria-hidden="true"><use href="#icon-home"></use></svg><span data-zh="首页" data-en="Home"></span></a><button type="button" data-soon="tasks"><svg aria-hidden="true"><use href="#icon-calendar"></use></svg><span data-zh="我的任务" data-en="My tasks"></span></button><a href="#toolbox" data-nav="toolbox"><svg aria-hidden="true"><use href="#icon-grid"></use></svg><span data-zh="工具箱" data-en="Tools"></span></a><button type="button" id="profile-entry"><svg aria-hidden="true"><use href="#icon-user"></use></svg><span data-zh="我的" data-en="Me"></span></button></nav><dialog id="info-dialog" aria-labelledby="dialog-title"><div class="dialog-head"><h2 id="dialog-title"></h2><button type="button" id="close-dialog" class="settings-button" aria-label="关闭 / Close">×</button></div><p id="dialog-copy"></p><div id="dialog-actions" class="hidden"><button class="submit" type="button" id="edit-school" data-zh="查看学校与城市设置" data-en="School & city settings"></button><p class="muted" data-zh="个人账号、历史记忆与提醒：即将开放。" data-en="Accounts, memories and reminders are coming soon."></p></div></dialog><dialog id="nickname-welcome" aria-labelledby="welcome-title">
+<div class="welcome-scene"><img class="welcome-bear" src="/static/images/baobao-blue-cutout.png" alt="BaoBao" width="1145" height="1374">
+<form id="nickname-start-form" class="welcome-card" novalidate>
+<h1 id="welcome-title" data-zh="嗨 👋 我是 BaoBao" data-en="Hi 👋 I’m BaoBao"></h1>
+<p data-zh="很高兴认识你！我可以陪你一起学习、生活，解答各种问题～" data-en="So glad to meet you! Let’s explore study, life, and all your questions together."></p>
+<label for="nickname-start" data-zh="我应该怎么称呼你？" data-en="What should I call you?"></label>
+<input id="nickname-start" autocomplete="nickname" placeholder="输入你的名字或昵称（如：Luna、Jack）" aria-describedby="nickname-start-message">
+<p id="nickname-start-message" role="alert"></p>
+<button class="nickname-primary" data-zh="开始使用 →" data-en="Let’s begin →"></button>
+<small data-zh="以后也可以在「我的」页面随时修改哦～" data-en="You can change this anytime in My space."></small>
+</form></div></dialog><svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="grad-blue" x2=".9" y2="1"><stop stop-color="#79c3ff"/><stop offset="1" stop-color="#2e79e8"/></linearGradient><linearGradient id="grad-peach" x2="1" y2="1"><stop stop-color="#ffbe98"/><stop offset="1" stop-color="#f47c51"/></linearGradient><linearGradient id="grad-green" x2="1" y2="1"><stop stop-color="#66e5c4"/><stop offset="1" stop-color="#13b591"/></linearGradient><linearGradient id="grad-purple" x2="1" y2="1"><stop stop-color="#c29bff"/><stop offset="1" stop-color="#8745ee"/></linearGradient></defs>
+<symbol id="feature-cap" viewBox="0 0 48 48"><path d="M10 24v12q14 11 28 0V24" fill="url(#grad-blue)" stroke="#5a9eed" stroke-width=".8"/><path d="M2 18L24 7l22 11-22 11z" fill="url(#grad-blue)" stroke="#3f92e8" stroke-width=".8"/><path d="M24 18l13 5v14" fill="none" stroke="#ffce63" stroke-width="2.4"/><path d="M37 34l-2 6h4z" fill="#ffce63" stroke="none"/></symbol>
+<symbol id="feature-home" viewBox="0 0 48 48"><rect x="4" y="4" width="40" height="40" rx="12" fill="#ffc7b3" stroke="none"/><path d="M11 24L25 11l14 13v17H29V29h-9v12h-9z" fill="#fff0d9" stroke="none"/><path d="M8 24L24 9l17 15 M35 16V9" fill="none" stroke="url(#grad-peach)" stroke-width="5"/><path d="M11 24v17h10V29h8v12h10V24" fill="none" stroke="url(#grad-peach)" stroke-width="3"/></symbol>
+<symbol id="feature-chat" viewBox="0 0 48 48"><circle cx="24" cy="23" r="19" fill="url(#grad-green)" stroke="none"/><path d="M8 30L5 45l15-8" fill="url(#grad-green)" stroke="none"/><g fill="#fff" stroke="none"><circle cx="15" cy="23" r="2.4"/><circle cx="24" cy="23" r="2.4"/><circle cx="33" cy="23" r="2.4"/></g></symbol>
+<symbol id="feature-calendar" viewBox="0 0 48 48"><rect x="7" y="9" width="35" height="35" rx="7" fill="url(#grad-purple)" stroke="none"/><path d="M16 5v10M33 5v10" fill="none" stroke="#8b48ee" stroke-width="4"/><path d="M7 20h35" stroke="#a46bf6" stroke-width="1.5"/><path d="M16 29l6 6 11-12" fill="none" stroke="#fff" stroke-width="3"/></symbol><symbol id="icon-book" viewBox="0 0 24 24"><path d="M3 4h6l3 2 3-2h6v15h-6l-3 2-3-2H3z M12 6v15"/></symbol><symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8 M5 10v11h5v-7h4v7h5V10"/></symbol><symbol id="icon-chat" viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 5z M8 8h8 M8 12h5"/></symbol><symbol id="icon-calendar" viewBox="0 0 24 24"><path d="M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2 M8 18h2"/></symbol><symbol id="icon-pin" viewBox="0 0 24 24"><path d="M19 10c0 6-7 11-7 11S5 16 5 10a7 7 0 0114 0z M14 10a2 2 0 11-4 0 2 2 0 014 0"/></symbol><symbol id="icon-mail" viewBox="0 0 24 24"><path d="M3 5h18v14H3z M3 6l9 7 9-7"/></symbol><symbol id="icon-bulb" viewBox="0 0 24 24"><path d="M9 18h6 M10 21h4 M8 14a6 6 0 118 0l-1 4H9z"/></symbol><symbol id="icon-globe" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0 M3 12h18 M12 3c5 5 5 13 0 18-5-5-5-13 0-18"/></symbol><symbol id="icon-translate" viewBox="0 0 24 24"><path d="M3 5h11 M8 3v2 M5 5c0 6 6 9 9 10 M12 5c0 6-4 9-9 11 M13 21l4-11 4 11 M15 17h4"/></symbol><symbol id="icon-grid" viewBox="0 0 24 24"><path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"/></symbol><symbol id="icon-user" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0 M4 21v-3c0-6 16-6 16 0v3"/></symbol><symbol id="icon-image" viewBox="0 0 24 24"><path d="M3 4h18v16H3z M3 16l5-5 4 4 3-3 6 5 M16 8h.01"/></symbol><symbol id="icon-mic" viewBox="0 0 24 24"><path d="M9 5a3 3 0 016 0v7a3 3 0 01-6 0z M5 10v2a7 7 0 0014 0v-2 M12 19v3 M8 22h8"/></symbol><symbol id="icon-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5z M14 2v6h5 M8 12h8 M8 16h6"/></symbol><symbol id="icon-cap" viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z M6 11v6q6 5 12 0v-6 M22 8v10"/></symbol><symbol id="icon-plane" viewBox="0 0 24 24"><path d="M21 3c-1-1-3 0-4 1l-4 5-8-2-2 2 8 4-4 5-3-1-2 2 5 3 3-5 5-4 4 8 2-2-2-8 5-4z"/></symbol><symbol id="icon-send" viewBox="0 0 24 24"><path d="M3 11L21 3l-7 18-3-8z M11 13L21 3"/></symbol></svg>{% include 'chat.html' %}</body></html>
